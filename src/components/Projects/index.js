@@ -11,7 +11,12 @@ const categoriesList = [
 ]
 
 class Projects extends Component {
-  state = {inputValue: categoriesList[0].id, data: [], isLoading: true}
+  state = {
+    inputValue: categoriesList[0].id,
+    data: [],
+    isLoading: true,
+    isFailure: false,
+  }
 
   componentDidMount() {
     this.getData()
@@ -24,15 +29,21 @@ class Projects extends Component {
     const options = {
       method: 'GET',
     }
-    const response = await fetch(url, options)
-    const resData = await response.json()
-    const updatedData = resData.projects.map(each => ({
-      id: each.id,
-      imageUrl: each.image_url,
-      name: each.name,
-    }))
-    if (response.ok) {
-      this.setState({data: updatedData, isLoading: false})
+    try {
+      const response = await fetch(url, options)
+      const resData = await response.json()
+      const updatedData = resData.projects.map(each => ({
+        id: each.id,
+        imageUrl: each.image_url,
+        name: each.name,
+      }))
+      if (response.ok) {
+        this.setState({data: updatedData, isLoading: false})
+      } else {
+        this.setState({isLoading: false, isFailure: true})
+      }
+    } catch (error) {
+      this.setState({isLoading: false, isFailure: true})
     }
   }
 
@@ -49,21 +60,51 @@ class Projects extends Component {
   renderData = () => {
     const {data} = this.state
     return (
-      <div className="api-data-container">
+      <ul className="api-data-container">
         {data.map(each => (
-          <div className="item-data">
+          <li className="item-data" key={each.id}>
             <img className="image" src={each.imageUrl} alt={each.name} />
             <div className="name-container">
               <p className="name">{each.name}</p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     )
   }
 
+  handleRetry = () => {
+    this.getData()
+  }
+
+  renderFailure = () => (
+    <div className="failure-container">
+      <img
+        src="https://assets.ccbp.in/frontend/react-js/projects-showcase/failure-img.png"
+        alt="failure view"
+        className="failure-image"
+      />
+      <h1>Oops! Something Went Wrong</h1>
+      <p>We cannot seem to find the page you are looking for.</p>
+      <button className="button" onClick={this.handleRetry} type="button">
+        Retry
+      </button>
+    </div>
+  )
+
+  content = () => {
+    const {isLoading, isFailure} = this.state
+    if (isLoading) {
+      return this.renderLoader()
+    }
+    if (isFailure) {
+      return this.renderFailure()
+    }
+    return this.renderData()
+  }
+
   render() {
-    const {inputValue, data, isLoading} = this.state
+    const {inputValue, data} = this.state
     console.log(data, inputValue)
     return (
       <div>
@@ -86,7 +127,7 @@ class Projects extends Component {
               </option>
             ))}
           </select>
-          {isLoading ? this.renderLoader() : this.renderData()}
+          {this.content()}
         </div>
       </div>
     )
